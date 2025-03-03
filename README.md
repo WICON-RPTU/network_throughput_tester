@@ -14,7 +14,7 @@ The server will listen for incoming UDP packets and automatically restart when i
 ### 2. Run the Client (Sending Side)
 On the **second Raspberry Pi** (client), run:
 ```bash
-python3 client.py
+python3 client_extended.py
 ```
 The script will prompt you to enter the following parameters:
 
@@ -81,14 +81,3 @@ Example error message:
  - Throughput: 12.84 Mbps
  - Latency (ms): Min = 1.22, Avg = 2.45, Max = 5.67
 ```
-
----
-
-## Why Use This?
-- **Measure real-time latency & packet loss**  
-- **Analyze throughput for low-latency networks**  
-- **Test Wi-Fi vs Ethernet stability**  
-- **Detect network failures automatically**  
-- **Monitor network performance live**  
-
----
