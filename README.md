@@ -1,6 +1,6 @@
 # Network Performance Test (UDP Latency & Throughput)
 
-This script measures **latency**, **packet loss**, and **throughput** between two Raspberry Pi devices (or any networked computers) using **UDP packets**. It provides **real-time performance monitoring** and logs the final results.
+This script measures **latency**, **packet loss**, **throughput**, and **packet rate (PPS)** between two Raspberry Pi devices (or any networked computers) using **UDP packets**. It provides **real-time performance monitoring** and logs the final results.
 
 ## How to Use
 
@@ -36,37 +36,50 @@ Press **Enter** to accept the default values or type your own.
 The script supports **four different test modes**:
 
 #### **Mode 1 - One-Time Test**
-Sends a **fixed number of packets** and reports **latency, throughput, and packet loss**.
+Sends a **fixed number of packets** and reports **latency, throughput, packet loss, and PPS**.
 
 #### **Mode 2 - Continuous Test (Stops at Packet Loss Limit)**
 - Runs tests continuously until **packet loss exceeds the user-defined limit**.
 - **Packet size increases** after each test cycle.
 
-#### **Mode 3 - Maximum Speed Test (Fixed Duration)**
-- Runs for a **set duration** and measures **maximum possible throughput**.
-- Uses **large packet sizes** to push network performance.
+#### **Mode 3 - Maximum Speed Test (Fixed Duration, Random Packet Sizes)**  
+- Runs for a **set duration** and measures **maximum possible throughput**.  
+- **User defines a min and max packet size**, and sizes change randomly per packet.  
+- Best for **real-world and stress testing**.
 
-#### **Mode 4 - Continuous Speed Test (Fixed Packet Size)**
-- Sends packets **indefinitely** at a **fixed size** until **manually stopped**.
-- Reports **real-time speed, packet loss, and latency**.
+#### **Mode 4 - Continuous Speed Test (Fixed Packet Size, Manual Stop)**  
+- Sends packets **indefinitely** at a **fixed size** until **manually stopped**.  
+- Reports **real-time speed, packet loss, PPS, and latency**.  
 - **Stops when the user presses** `Ctrl + C`.
 
 ---
 
-### 4. Live Performance Analysis
+### 4. Recommended Packet Sizes for Ethernet Testing
+
+| **Test Type**               | **Recommended Packet Size** | **Reason** |
+|----------------------------|----------------------------|------------|
+| **Maximum Throughput**      | **1472 bytes** (UDP) / **1500 bytes** (Ethernet MTU) | Maximizes efficiency and reduces overhead |
+| **Real-World Traffic**      | **512 - 1024 bytes** | Common packet size in internet traffic |
+| **Low-Latency Networks**    | **64 - 128 bytes** | Used in VoIP, gaming, and real-time systems |
+| **Stress Testing (Varied)** | **64 - 1472 bytes (randomized)** | Simulates different network loads |
+
+---
+
+### 5. Live Performance Analysis
 During the test, real-time statistics will be displayed:
 ```bash
-📡 Sent: 1000 | ✅ Received: 998 | 🚫 Loss: 0.20% | 📊 Speed: 15.45 Mbps
+📡 Elapsed Time: 5.43 sec | Sent: 2500 | ✅ Received: 2495 | 🚫 Loss: 0.20% | 📊 Speed: 15.45 Mbps | 🔄 Max PPS: 8000
 ```
 - **Sent**: Total packets sent  
 - **Received**: Successfully received packets  
 - **Lost**: Packets that were dropped  
 - **Latency**: Min, Avg, Max values displayed at the end  
 - **Speed**: Current network throughput in Mbps  
+- **Max PPS**: Maximum packet rate per second achieved during the test  
 
 ---
 
-### 5. Automatic Disconnection Detection
+### 6. Automatic Disconnection Detection
 If **no response from the server** is received within the **user-defined timeout (e.g., 2 seconds)**, the test will stop and display final results.
 
 Example error message:
@@ -80,4 +93,5 @@ Example error message:
  - Packet loss: 13.60%
  - Throughput: 12.84 Mbps
  - Latency (ms): Min = 1.22, Avg = 2.45, Max = 5.67
+ - 🔄 Max PPS: 10,500 PPS
 ```
