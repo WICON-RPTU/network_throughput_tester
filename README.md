@@ -1,129 +1,94 @@
-import socket
-import time
-import sys
+# Network Performance Test (UDP Latency & Throughput)
 
-# Function to get user input with validation
-def get_user_input(prompt, default, min_val=None, max_val=None, dtype=str):
-    while True:
-        try:
-            value = input(f"{prompt} (default {default}): ") or default
-            value = dtype(value)
-            if min_val is not None and max_val is not None and not (min_val <= value <= max_val):
-                print(f"⚠️ Value must be between {min_val} and {max_val}. Try again.")
-            else:
-                return value
-        except ValueError:
-            print("⚠️ Invalid input. Please enter a valid value.")
+This script measures **latency**, **packet loss**, and **throughput** between two Raspberry Pi devices (or any networked computers) using **UDP packets**. It provides **real-time performance monitoring** and logs the final results.
 
-# User chooses the test mode
-print("\nSelect test mode:")
-print("1 - One-time test")
-print("2 - Continuous test until packet loss exceeds the limit")
-print("3 - Maximum speed test (fixed duration)")
-print("4 - Continuous speed test (fixed packet size, manual stop)")
+## How to Use
 
-TEST_MODE = get_user_input("Enter your choice (1, 2, 3, or 4)", 1, 1, 4, int)
+### 1. Setup the Server (Receiving Side)
+Run the following command on the **first Raspberry Pi** (server):
+```bash
+python3 server.py
+```
+The server will listen for incoming UDP packets and automatically restart when it receives an **"END"** signal.
 
-# Get user-defined values
-SERVER_IP = get_user_input("Enter server IP address", "192.168.100.4")  # Default changed to 192.168.100.4
-SERVER_PORT = 5005
-NETWORK_TIMEOUT = get_user_input("Enter network timeout duration (seconds)", 2, 1, 10, int)  # Now user-defined
+### 2. Run the Client (Sending Side)
+On the **second Raspberry Pi** (client), run:
+```bash
+python3 client.py
+```
+The script will prompt you to enter the following parameters:
 
-if TEST_MODE in [3, 4]:
-    PAYLOAD_SIZE = int(get_user_input("Enter packet size for speed test (bytes)", 1472, 1, 1472, int))
+| Parameter          | Description                                       | Default Value       |
+|--------------------|---------------------------------------------------|---------------------|
+| **Test Mode**      | Choose between different test types               | `1` (One-time test) |
+| **Server IP**      | IP address of the receiving device                | `192.168.100.4`    |
+| **Network Timeout**| Time to wait before assuming disconnection (sec) | `2`                 |
+| **Packet Size**    | Size of each packet in bytes (1-1472)             | `128` (varies)      |
+| **Packet Interval**| Time delay between packets (0.0001 - 1.0 sec)     | `0.005`             |
+| **Max Packet Loss**| Packet loss threshold for stopping tests (%)      | `2.0`               |
+| **Test Duration**  | For speed tests, total runtime (seconds)          | `10`                |
 
-if TEST_MODE == 3:
-    SPEED_TEST_DURATION = get_user_input("Enter speed test duration (seconds)", 10, 1, 60, int)
-elif TEST_MODE != 4:
-    NUM_PACKETS = int(get_user_input("Enter number of packets per test", 1000, 1, 100000, int))
-    INITIAL_PACKET_SIZE = int(get_user_input("Enter initial packet size (bytes)", 128, 1, 1472, int))
-    PACKET_INTERVAL = get_user_input("Enter packet interval (seconds)", 0.005, 0.0001, 1.0, float)
+Press **Enter** to accept the default values or type your own.
 
-    if TEST_MODE == 2:
-        PACKET_LOSS_LIMIT = get_user_input("Enter maximum allowed packet loss (%)", 2.0, 0.1, 100.0, float)
-        PACKET_SIZE_INCREMENT = int(get_user_input("Enter packet size increment per test", 64, 1, 512, int))
+---
 
-# Create UDP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.settimeout(2)  # Standard timeout for individual packets
+### 3. Test Modes
+The script supports **four different test modes**:
 
-if TEST_MODE in [3, 4]:
-    if TEST_MODE == 3:
-        print(f"\n🚀 Running maximum speed test to {SERVER_IP}:{SERVER_PORT} for {SPEED_TEST_DURATION} seconds with {PAYLOAD_SIZE} byte packets...\n")
-        end_time = time.time() + SPEED_TEST_DURATION
-    else:
-        print(f"\n🚀 Running continuous speed test to {SERVER_IP}:{SERVER_PORT} with {PAYLOAD_SIZE} byte packets. Press Ctrl + C to stop.\n")
+#### **Mode 1 - One-Time Test**
+Sends a **fixed number of packets** and reports **latency, throughput, and packet loss**.
 
-    packets_sent = 0
-    packets_received = 0
-    latencies = []
-    start_time = time.time()
-    last_received_time = time.time()  # Track last received packet
+#### **Mode 2 - Continuous Test (Stops at Packet Loss Limit)**
+- Runs tests continuously until **packet loss exceeds the user-defined limit**.
+- **Packet size increases** after each test cycle.
 
-    try:
-        while TEST_MODE == 4 or time.time() < end_time:
-            send_time = time.time()
-            payload = b"x" * PAYLOAD_SIZE  # Create dummy payload
+#### **Mode 3 - Maximum Speed Test (Fixed Duration)**
+- Runs for a **set duration** and measures **maximum possible throughput**.
+- Uses **large packet sizes** to push network performance.
 
-            try:
-                sock.sendto(payload, (SERVER_IP, SERVER_PORT))
-                packets_sent += 1
+#### **Mode 4 - Continuous Speed Test (Fixed Packet Size)**
+- Sends packets **indefinitely** at a **fixed size** until **manually stopped**.
+- Reports **real-time speed, packet loss, and latency**.
+- **Stops when the user presses** `Ctrl + C`.
 
-                # Receive timestamp from server
-                data, _ = sock.recvfrom(1024)
-                recv_time = time.time()
-                latency = (recv_time - send_time) * 1000  # Convert to ms
-                latencies.append(latency)
-                packets_received += 1
-                last_received_time = time.time()  # Update last successful packet reception
+---
 
-            except socket.timeout:
-                pass  # Packet was lost
+### 4. Live Performance Analysis
+During the test, real-time statistics will be displayed:
+```bash
+📡 Sent: 1000 | ✅ Received: 998 | 🚫 Loss: 0.20% | 📊 Speed: 15.45 Mbps
+```
+- **Sent**: Total packets sent  
+- **Received**: Successfully received packets  
+- **Lost**: Packets that were dropped  
+- **Latency**: Min, Avg, Max values displayed at the end  
+- **Speed**: Current network throughput in Mbps  
 
-            # Check if the server has been unreachable for the user-defined timeout duration
-            if time.time() - last_received_time > NETWORK_TIMEOUT:
-                raise Exception(f"Server unreachable for {NETWORK_TIMEOUT}+ seconds")
+---
 
-            # Live stats
-            elapsed_time = time.time() - start_time
-            total_bytes_sent = packets_sent * PAYLOAD_SIZE
-            throughput_mbps = (total_bytes_sent * 8) / (elapsed_time * 1e6) if elapsed_time > 0 else 0
-            packet_loss = ((packets_sent - packets_received) / packets_sent) * 100 if packets_sent > 0 else 0
+### 5. Automatic Disconnection Detection
+If **no response from the server** is received within the **user-defined timeout (e.g., 2 seconds)**, the test will stop and display final results.
 
-            sys.stdout.write(f"\r📡 Sent: {packets_sent} | ✅ Received: {packets_received} | 🚫 Loss: {packet_loss:.2f}% | 📊 Speed: {throughput_mbps:.2f} Mbps ")
-            sys.stdout.flush()
+Example error message:
+```
+❌ ERROR: Connection lost during test. Reason: Server unreachable for 2+ seconds
+📊 Speed Test Results:
+ - Server IP: 192.168.100.4
+ - Test duration: 14.32 seconds
+ - Packets sent: 5000
+ - Packets received: 4320
+ - Packet loss: 13.60%
+ - Throughput: 12.84 Mbps
+ - Latency (ms): Min = 1.22, Avg = 2.45, Max = 5.67
+```
 
-    except KeyboardInterrupt:
-        print("\n\n🛑 Speed test stopped by user.")
+---
 
-    except Exception as e:
-        print(f"\n\n❌ ERROR: Connection lost during test. Reason: {e}")
+## Why Use This?
+- **Measure real-time latency & packet loss**  
+- **Analyze throughput for low-latency networks**  
+- **Test Wi-Fi vs Ethernet stability**  
+- **Detect network failures automatically**  
+- **Monitor network performance live**  
 
-    # Calculate min/avg/max latency
-    if latencies:
-        min_latency = min(latencies)
-        avg_latency = sum(latencies) / len(latencies)
-        max_latency = max(latencies)
-    else:
-        min_latency = avg_latency = max_latency = 0
-
-    # Print final results
-    elapsed_time = time.time() - start_time
-    total_bytes_sent = packets_sent * PAYLOAD_SIZE
-    throughput_mbps = (total_bytes_sent * 8) / (elapsed_time * 1e6) if elapsed_time > 0 else 0
-    packet_loss = ((packets_sent - packets_received) / packets_sent) * 100 if packets_sent > 0 else 0
-
-    print("\n📊 Speed Test Results:")
-    print(f" - Server IP: {SERVER_IP}")
-    print(f" - Test duration: {elapsed_time:.2f} seconds")
-    print(f" - Packets sent: {packets_sent}")
-    print(f" - Packets received: {packets_received}")
-    print(f" - Packet loss: {packet_loss:.2f}%")
-    print(f" - Throughput: {throughput_mbps:.2f} Mbps")
-    print(f" - Latency (ms): Min = {min_latency:.2f}, Avg = {avg_latency:.2f}, Max = {max_latency:.2f}")
-
-else:
-    print("\n❌ ERROR: Only modes 3 and 4 support live speed testing.")
-    sys.exit(1)
-
-sock.close()
+---
