@@ -2,6 +2,25 @@
 
 This script measures **latency**, **packet loss**, **throughput**, and **packet rate (PPS)** between two Raspberry Pi devices (or any networked computers) using **UDP packets**. It provides **real-time performance monitoring** and logs the final results.
 
+## Features
+✅ **4 Test Modes**:
+  - **Mode 1:** One-time test with a fixed number of packets.
+  - **Mode 2:** Continuous test until packet loss reaches a set threshold.
+  - **Mode 3:** Maximum speed test with random packet sizes.
+  - **Mode 4:** Continuous speed test with a fixed packet size (manual stop).
+
+✅ **Real-time statistics**:
+  - Packets sent & received
+  - Packet loss percentage
+  - Live throughput in **kbit/s** and **kB/s**
+  - Maximum packets per second (PPS)
+
+✅ **Final summary statistics**:
+  - **Min, Avg, and Max Latency (ms)**
+  - **Final packet loss (%)**
+  - **Throughput in kbit/s & kB/s**
+
+
 ## How to Use
 
 ### 1. Setup the Server (Receiving Side)
